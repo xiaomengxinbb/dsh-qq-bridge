@@ -163,11 +163,13 @@ Markdown 格式化 → 被动回复回传。测试期环境变量：`QQBOT_CONFI
 
 ## 🙏 致谢
 
-本插件建立在以下项目之上，向这些优秀的开源项目致敬：
+本项目在设计与实现过程中参考了以下开源项目（协议处理、架构思路与安全设计深受启发），代码为独立实现：
 
-- **[pi-qq-bridge](https://github.com/xiaomengxinbb/pi-qq-bridge)**（Apache-2.0）—— 本插件的移植来源：网关/路由/命令/媒体/格式化等宿主无关模块原样复用，隔离会话与安全模型的直接蓝本
-- **[Pi coding agent](https://github.com/earendil-works/pi-coding-agent)**（`@earendil-works/pi-coding-agent`）—— pi-qq-bridge 的宿主与 SDK：隔离 AgentSession、模型管理、工具注册体系的灵感来源
-- **[DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness)** —— 本插件的宿主平台：Agent 注册表（`ctx.agents`）、会话持久化、工具/命令注册等官方 API 的全部基础
+- [pi-agent-qqbot](https://github.com/gtiders/pi-agent-qqbot)（Apache-2.0）— 原生会话绑定方案、被动回复预算（ReplyBudget）、网关所有权转移
+- [@xsqm/pi-qqbot](https://github.com/XiaoSQM/pi-coding-agent-qqbot)（Apache-2.0）— 隔离 AgentSession 架构（本项目骨架来源）、附件安全下载管线、语义分块回复格式
+- [pi-qq-integration](https://github.com/Star-233/pi-qq-integration)（MIT）— 轻量 WebSocket 客户端与 Access Token 管理参考
+
+> 本插件直接移植自 [pi-qq-bridge](https://github.com/xiaomengxinbb/pi-qq-bridge)（Apache-2.0），其宿主无关模块（网关/路由/命令/媒体/格式化）原样复用。
 
 ## 状态与验证进度
 
