@@ -1,5 +1,10 @@
 # dsh-qq-bridge
 
+[![npm version](https://img.shields.io/npm/v/dsh-qq-bridge)](https://www.npmjs.com/package/dsh-qq-bridge)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-qq-bridge)](https://www.npmjs.com/package/dsh-qq-bridge)
+[![License](https://img.shields.io/npm/l/dsh-qq-bridge)](LICENSE)
+[![GitHub repo](https://img.shields.io/badge/GitHub-xiaomengxinbb%2Fdsh--qq--bridge-blue?logo=github)](https://github.com/xiaomengxinbb/dsh-qq-bridge)
+
 通过 QQ 官方机器人 API v2 将 QQ（私聊 + 群聊）接入 **DeepSeek Harness** 的双向通信插件。
 每个 QQ 对话拥有独立、持久的 Agent 会话（DSH 原生隔离会话），支持工作区切换与多媒体。
 
