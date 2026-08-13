@@ -5,10 +5,23 @@
 [![License](https://img.shields.io/npm/l/dsh-qq-bridge)](LICENSE)
 [![GitHub repo](https://img.shields.io/badge/GitHub-xiaomengxinbb%2Fdsh--qq--bridge-blue?logo=github)](https://github.com/xiaomengxinbb/dsh-qq-bridge)
 
-通过 QQ 官方机器人 API v2 将 QQ（私聊 + 群聊）接入 **DeepSeek Harness** 的双向通信插件。
-每个 QQ 对话拥有独立、持久的 Agent 会话（DSH 原生隔离会话），支持工作区切换与多媒体。
+**首个将 QQ 接入 DeepSeek Harness 的双向桥插件** 🎉——通过 QQ 官方机器人 API v2（私聊 + 群聊），
+让你直接在 QQ 里驱动 DeepSeek Harness 的 Agent：每个 QQ 对话拥有独立、持久的隔离 Agent 会话，
+像在 Web 里一样使用完整的工具链、模型切换与工作区。
 
-> **移植自** [pi-qq-bridge](https://github.com/xiaomengxinbb/pi-qq-bridge)（Apache-2.0）。
+## ✨ 特性
+
+- 🔌 **零依赖网关**：QQ 官方 WebSocket 协议（token 预刷新 / 心跳假死检测 / 指数退避重连 / Resume 补发），仅用 Node 内置能力
+- 🧊 **隔离会话**：每 QQ 对话 ↔ 一个持久 DSH Agent（`agents.create/resume`），历史按 (对话, 工作区) 隔离，重启自动恢复
+- ⚡ **steering 插嘴**：任务运行中继续发消息，立即注入下一步骤（DSH 原生）
+- 📚 **完整命令体系**：`/help /status /model /thinking /new /sessions /resume /compact /stop /workspace` + 键盘按钮
+- 🔐 **首访审批**：未授权用户自动生成审批码，管理员一键授权（支持普通用户/管理员两级）
+- 🖼️ **多媒体**：图片直入视觉模型、语音 ASR/STT、TXT/PDF 有界提取；安全下载（SSRF 防护）
+- 📤 **出站文件**：Agent 可调用 `qq_send_local_file` 把本地文件发回 QQ（白名单 + 硬链接/竞态防护）
+- 🗂️ **多工作区**：QQ 侧 `/workspace` 切换目录，会话历史按工作区隔离
+- ✅ **实测可用**：116 个单测 + 真实 QQ 沙箱文本闭环验证
+
+> **移植自** [pi-qq-bridge](https://github.com/xiaomengxinbb/pi-qq-bridge)（Apache-2.0）：
 > 宿主无关模块（网关/路由/命令/媒体/格式化）原样复用；宿主绑定层（会话创建/工具/命令）改为 DSH 官方 API。
 
 ---
