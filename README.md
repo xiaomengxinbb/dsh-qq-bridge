@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/npm/l/dsh-qq-bridge)](LICENSE)
 [![GitHub repo](https://img.shields.io/badge/GitHub-xiaomengxinbb%2Fdsh--qq--bridge-blue?logo=github)](https://github.com/xiaomengxinbb/dsh-qq-bridge)
 
-**首个将 QQ 接入 DeepSeek Harness 的双向桥插件** 🎉——通过 QQ 官方机器人 API v2（私聊 + 群聊），
+**将 QQ 接入 DeepSeek Harness 的双向桥插件**——通过 QQ 官方机器人 API v2（私聊 + 群聊），
 让你直接在 QQ 里驱动 DeepSeek Harness 的 Agent：每个 QQ 对话拥有独立、持久的隔离 Agent 会话，
 像在 Web 里一样使用完整的工具链、模型切换与工作区。
 
@@ -160,6 +160,14 @@ cat ~/dsh-qq-bridge/.integration-result.json   # ok: true = 闭环通过
 覆盖：网关握手/心跳 → C2C 消息注入 → 白名单 → 队列 → 真 DSH 会话 → 真模型调用 →
 Markdown 格式化 → 被动回复回传。测试期环境变量：`QQBOT_CONFIG_PATH` / `QQBOT_API_BASE` /
 `QQBOT_TOKEN_URL`（mock 平台注入，不影响正式运行）。
+
+## 🙏 致谢
+
+本插件建立在以下项目之上，向这些优秀的开源项目致敬：
+
+- **[pi-qq-bridge](https://github.com/xiaomengxinbb/pi-qq-bridge)**（Apache-2.0）—— 本插件的移植来源：网关/路由/命令/媒体/格式化等宿主无关模块原样复用，隔离会话与安全模型的直接蓝本
+- **[Pi coding agent](https://github.com/earendil-works/pi-coding-agent)**（`@earendil-works/pi-coding-agent`）—— pi-qq-bridge 的宿主与 SDK：隔离 AgentSession、模型管理、工具注册体系的灵感来源
+- **[DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness)** —— 本插件的宿主平台：Agent 注册表（`ctx.agents`）、会话持久化、工具/命令注册等官方 API 的全部基础
 
 ## 状态与验证进度
 
