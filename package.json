@@ -1,7 +1,7 @@
 {
   "name": "dsh-qq-bridge",
-  "version": "0.0.1",
-  "description": "QQ official bot bridge for DeepSeek Harness (port of pi-qq-bridge): bidirectional QQ (C2C + group) with isolated persistent agent sessions.",
+  "version": "0.1.0",
+  "description": "QQ official bot bridge plugin for DeepSeek Harness (port of pi-qq-bridge): bidirectional QQ (C2C + group chat) with isolated persistent agent sessions, commands, media pipeline and outbound file delivery.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "src/index.ts",
@@ -13,15 +13,19 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test test/*.test.ts"
+    "test": "node --test test/*.test.ts",
+    "prepack": "npm test"
   },
   "keywords": [
     "dsh",
     "dsh-plugin",
+    "deepseek-harness",
     "qq",
     "qqbot",
     "qq-bot",
-    "agent"
+    "qq-robot",
+    "agent",
+    "bridge"
   ],
   "devDependencies": {
     "@types/node": "^26.2.0",
@@ -37,6 +41,14 @@
     "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-session": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaomengxinbb/dsh-qq-bridge.git"
+  },
+  "homepage": "https://github.com/xiaomengxinbb/dsh-qq-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/xiaomengxinbb/dsh-qq-bridge/issues"
   },
   "publishConfig": {
     "access": "public"
