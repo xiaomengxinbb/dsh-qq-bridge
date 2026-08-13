@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 4,
+  "enabled": true,
+  "startup": { "mode": "auto", "keepAcrossLocalSessions": true, "handoffGraceMs": 10000 },
+  "appId": "integration-test-app",
+  "clientSecret": "integration-test-secret",
+  "sandbox": true,
+  "allowUsers": ["test-openid"],
+  "allowGroups": [],
+  "workspaces": [{ "name": "default", "path": "/tmp/dsh-qq-bridge-integration-ws" }],
+  "commands": {
+    "enabled": true,
+    "accessRequests": true,
+    "allowInGroups": false,
+    "admins": ["test-openid"],
+    "buttons": true,
+    "maxListItems": 5,
+    "modelPageSize": 6,
+    "selectionTtlMs": 300000,
+    "confirmationTtlMs": 120000
+  },
+  "sessions": { "mode": "persistent", "restore": "recent", "maxResident": 8, "idleDisposeMs": 1800000 },
+  "replyFormat": "auto",
+  "showProcess": false,
+  "progress": { "enabled": false, "ackAfterMs": 3000 },
+  "maxQueueSize": 20,
+  "media": { "enabled": false },
+  "outboundMedia": { "enabled": false },
+  "logging": { "level": "info" },
+  "debug": true
+}

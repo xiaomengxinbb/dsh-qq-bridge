@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 4,
+  "enabled": true,
+  "startup": { "mode": "auto", "keepAcrossLocalSessions": true, "handoffGraceMs": 10000 },
+  "appId": "在此填入 QQ 开放平台 AppID",
+  "clientSecret": "在此填入 QQ 开放平台 AppSecret",
+  "sandbox": true,
+  "allowUsers": [],
+  "allowGroups": [],
+  "workspaces": [{ "name": "default", "path": "" }],
+  "commands": {
+    "enabled": true,
+    "accessRequests": true,
+    "allowInGroups": false,
+    "admins": [],
+    "buttons": true,
+    "maxListItems": 5,
+    "modelPageSize": 6,
+    "selectionTtlMs": 300000,
+    "confirmationTtlMs": 120000
+  },
+  "sessions": { "mode": "persistent", "restore": "recent", "maxResident": 8, "idleDisposeMs": 1800000 },
+  "replyFormat": "auto",
+  "showProcess": false,
+  "progress": { "enabled": true, "ackAfterMs": 3000 },
+  "maxQueueSize": 20,
+  "media": {
+    "enabled": true,
+    "maxAttachments": 4,
+    "maxTotalBytes": 31457280,
+    "downloadTimeoutMs": 120000,
+    "image": { "maxBytes": 10485760 },
+    "voice": { "enabled": true, "preferQQAsr": true, "maxBytes": 26214400 },
+    "documents": {
+      "allowExtensions": [".txt", ".pdf", ".doc"],
+      "maxTxtBytes": 2097152,
+      "maxPdfBytes": 20971520,
+      "maxDocBytes": 10485760,
+      "maxPdfPages": 100,
+      "maxExtractedChars": 150000
+    }
+  },
+  "outboundMedia": {
+    "enabled": false,
+    "adminsOnly": true,
+    "allowPrivate": true,
+    "allowGroups": false,
+    "allowedRoots": [],
+    "images": true,
+    "files": true,
+    "maxFilesPerTurn": 2,
+    "maxImageBytes": 10485760,
+    "maxFileBytes": 20971520,
+    "maxTotalBytes": 31457280,
+    "uploadTimeoutMs": 30000,
+    "uploadMode": "auto",
+    "base64UploadMaxBytes": 5242880,
+    "chunked": { "maxParts": 128, "partConcurrency": 2, "prepareTimeoutMs": 15000, "partTimeoutMs": 60000 }
+  },
+  "logging": { "level": "info" },
+  "debug": false
+}

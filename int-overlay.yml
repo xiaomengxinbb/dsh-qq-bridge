@@ -1,0 +1,11 @@
+# 全链路集成测试 overlay（dev-int profile）
+# hmr 禁用：插件目录内自测产物写入会触发 watch 重载
+- id: hmr
+  disabled: true
+
+- insert:
+    - id: dsh-qq-bridge
+      name: 'dsh-qq-bridge'
+
+    - id: qq-bridge-integration-driver
+      name: 'qq-bridge-integration-driver'

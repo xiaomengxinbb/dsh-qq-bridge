@@ -1,0 +1,8 @@
+# dev profile 冒烟用 overlay（--patch 参数传入，不污染 profile 本体）
+# hmr 禁用：与 web profile 一致（插件目录内的自测产物写入会触发 watch 重载）
+- id: hmr
+  disabled: true
+
+- insert:
+    - id: dsh-qq-bridge
+      name: 'dsh-qq-bridge'

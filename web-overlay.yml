@@ -1,0 +1,4 @@
+# web profile 挂载 dsh-qq-bridge（安装插件后启用；重启 dsh web 生效）
+- insert:
+    - id: dsh-qq-bridge
+      name: 'dsh-qq-bridge'

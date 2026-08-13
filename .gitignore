@@ -1,0 +1,20 @@
+# 依赖
+node_modules/
+
+# 开发期产物（勿提交）
+.boot-marker
+.selftest-result.json
+.integration-result.json
+.access-request.json
+.promotion-done
+.selftest-ws/
+.integration-ws/
+
+# 日志
+*.log
+
+# 配置（含凭据）
+.dsh/
+
+# 系统
+.DS_Store
