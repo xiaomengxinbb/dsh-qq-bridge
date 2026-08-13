@@ -16,5 +16,14 @@ node_modules/
 # 配置（含凭据）
 .dsh/
 
+# npm 凭据（token 只在本机，绝不入库）
+.npmrc
+.npm-token
+*.npmrc
+_authToken*
+credentials*
+.env
+.env.*
+
 # 系统
 .DS_Store
