@@ -283,6 +283,16 @@ export class QQAgentSession implements QQSessionLike {
     }
   }
 
+  /** agentPresets 服务窄接口：mount 挂载默认 preset（id 缺省 = settings.yaml agent-presets.default） */
+  private async mountDefaultPreset(agentCtx: unknown): Promise<void> {
+    const presets = this.svc<{ mount(ctx: unknown, id?: string): Promise<unknown> }>("agentPresets");
+    if (!presets) {
+      throw new Error("agentPresets 服务不可用：QQ 会话无法挂载 preset，工具集将为空");
+    }
+    // mount 失败会回滚 agent 创建（dsh-agent-presets 语义），保证不会产生空工具集的半成品会话
+    await presets.mount(agentCtx);
+  }
+
   /** base64 图片 → dsh-attachment 保存 → ImageBlock（保存失败降级为文本说明） */
   private async appendImages(blocks: Array<Record<string, unknown>>, images?: QQImageContent[]): Promise<void> {
     if (!images || images.length === 0) return;
@@ -340,9 +350,12 @@ export class QQAgentSession implements QQSessionLike {
       current: selection ?? undefined,
       assembled: undefined,
     };
-    const setup = (agentCtx: unknown): void => {
+    const setup = async (agentCtx: unknown): Promise<void> => {
       this.requireHost().setupAgent?.(agentCtx);
       this.setupQQTools(agentCtx);
+      // 挂载默认 agent preset（settings.yaml agent-presets.default → standard），
+      // 否则 agent 工具集为空，只有插件注册的 qq_send_local_file / update_memory
+      await this.mountDefaultPreset(agentCtx);
       // 把选择器绑定到 agent 作用域（对下一步骤生效）
       try {
         installModelSelection(agentCtx as never, ref as never);
@@ -570,8 +583,10 @@ export class QQAgentSession implements QQSessionLike {
     const handle = (await agents.resume({
       resumeSessionId: SessionId(path),
       agentOptions,
-      setup: (agentCtx: unknown) => {
+      setup: async (agentCtx: unknown): Promise<void> => {
         this.requireHost().setupAgent?.(agentCtx);
+        this.setupQQTools(agentCtx);
+        await this.mountDefaultPreset(agentCtx);
         try {
           installModelSelection(agentCtx as never, ref as never);
         } catch {
