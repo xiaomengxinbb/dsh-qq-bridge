@@ -361,9 +361,10 @@ export function normalizeInputPath(input: string, cwd: string): string {
 	if (!value || /[\u0000-\u001f\u007f]/.test(value)) {
 		throw new QQOutboundMediaError("path_invalid", "本地文件路径无效");
 	}
-	// Windows 路径 → WSL 路径（/mnt/c/...）
+	// Windows 路径 → WSL 路径（/mnt/c/...）：仅 WSL/Linux 部署需要；
+	// Windows 原生 node 下保留盘符路径（realpath 需要原生格式）
 	const windows = value.match(/^([a-zA-Z]):[\\/](.*)$/s);
-	if (windows)
+	if (windows && process.platform === "linux")
 		value = `/mnt/${windows[1]!.toLowerCase()}/${windows[2]!.replaceAll("\\", "/")}`;
 	return resolve(isAbsolute(value) ? value : resolve(cwd, value));
 }
