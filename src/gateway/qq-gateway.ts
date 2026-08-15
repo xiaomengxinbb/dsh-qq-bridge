@@ -413,7 +413,8 @@ export class QQGateway {
 
 	private scheduleReconnect(reason: string): void {
 		if (this.stopped) return;
-		if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+		// maxReconnectAttempts <= 0 表示无限重连（默认 0，避免静默掉线后 bot 永久失联）
+		if (this.maxReconnectAttempts > 0 && this.reconnectAttempts >= this.maxReconnectAttempts) {
 			this.setState(
 				"error",
 				`自动重连已停止（${this.maxReconnectAttempts} 次失败，${reason}）；请手动 /qqbot-reconnect`,

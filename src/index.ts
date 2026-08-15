@@ -135,7 +135,18 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
   const apiBase = process.env.QQBOT_API_BASE;
   const tokenUrl = process.env.QQBOT_TOKEN_URL;
   const auth = new QQAuth(cfg.appId, cfg.clientSecret, tokenUrl ? { tokenUrl } : {});
-  const gateway = new QQGateway(auth, { sandbox: cfg.sandbox, debugLog: debugLogFor(cfg), ...(apiBase ? { apiBase } : {}) });
+  // gateway 重连配置：0 = 无限重连（避免自动重连 5 次耗尽后 bot 永久失联）
+  const gwOptions: ConstructorParameters<typeof QQGateway>[1] = {
+    sandbox: cfg.sandbox,
+    debugLog: debugLogFor(cfg),
+  };
+  if (apiBase) gwOptions.apiBase = apiBase;
+  if (cfg.gateway) {
+    if (cfg.gateway.maxReconnectAttempts > 0) gwOptions.maxReconnectAttempts = cfg.gateway.maxReconnectAttempts;
+    if (cfg.gateway.reconnectBaseMs > 0) gwOptions.reconnectBaseMs = cfg.gateway.reconnectBaseMs;
+    if (cfg.gateway.reconnectMaxMs > 0) gwOptions.reconnectMaxMs = cfg.gateway.reconnectMaxMs;
+  }
+  const gateway = new QQGateway(auth, gwOptions);
   const api = new QQApi(auth, { sandbox: cfg.sandbox, ...(apiBase ? { apiBase } : {}) });
   const agentDir = expandHome("~/.dsh/qq-bridge");
   const cwd = process.cwd();
