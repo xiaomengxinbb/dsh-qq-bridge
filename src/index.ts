@@ -558,9 +558,11 @@ export function apply(ctx: any, _config: unknown): void {
             },
           });
           // 发 QQ 审批消息(带三按钮键盘)
+          // QQ 要求 keyboard 只能跟随被动回复(msg_id 必填)→ 用最近入站 msg_id(仿 Hermes _last_msg_id)
+          const msgId = rt.router.lastMsgIdFor(userOpenId) ?? "";
           void rt.api
             .sendText(
-              { type: "private", userOpenId, msgId: "" },
+              { type: "private", userOpenId, msgId },
               text,
               Date.now() % 65535,
               keyboard,

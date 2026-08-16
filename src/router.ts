@@ -116,6 +116,8 @@ export class QQRouter {
 	private readonly registry: ConversationRegistryLike;
 	private readonly api: QQApi;
 	private readonly approvalBridge?: ApprovalBridgeLike;
+	/** 用户 openid → 最近入站 msg_id(审批按钮被动回复用) */
+	private readonly lastMsgIdByUser = new Map<string, string>();
 
 	constructor(
 		config: PiQQBridgeConfig,
@@ -1087,6 +1089,13 @@ export class QQRouter {
 	private recordInbound(msg: QQInboundMessage): void {
 		this.recentInbound.push({ at: msg.receivedAt, text: msg.text });
 		if (this.recentInbound.length > LAST_RING_MAX) this.recentInbound.shift();
+		// 记录每个用户的最近入站 msg_id(审批按钮被动回复需要;仿 Hermes _last_msg_id)
+		this.lastMsgIdByUser.set(msg.userOpenId, msg.id);
+	}
+
+	/** 最近入站 msg_id(按用户;审批消息做被动回复用,QQ 要求带 msg_id 才有 keyboard) */
+	lastMsgIdFor(userOpenId: string): string | undefined {
+		return this.lastMsgIdByUser.get(userOpenId);
 	}
 
 	private recordOutbound(
