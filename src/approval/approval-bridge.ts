@@ -39,7 +39,9 @@ export interface QQKeyboardButton {
 	id: string;
 	render_data: { label: string; visited_label: string; style: number };
 	action: {
-		type: 2;
+		// type 1 = 自定义回调(触发 INTERACTION_CREATE,审批按钮必需;仿 Hermes)
+		// type 2 = 文本指令(点击=发送 data 文本,不产生 INTERACTION_CREATE)
+		type: 1;
 		permission: { type: 2 };
 		data: string;
 		reply: boolean;
@@ -112,7 +114,8 @@ export class ApprovalBridge {
 			id,
 			render_data: { label, visited_label: visited, style },
 			action: {
-				type: 2,
+				// type 1 = 自定义回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
+				type: 1,
 				permission: { type: 2 },
 				data: `${APPROVAL_BUTTON_PREFIX}${approvalId}:${choice}`,
 				reply: false,

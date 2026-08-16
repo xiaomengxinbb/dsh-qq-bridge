@@ -18,7 +18,7 @@ import type {
 } from "../core/types.ts";
 import type { QQAuth } from "./qq-auth.ts";
 
-export const QQ_INTENTS = 1 << 25; // GROUP_AND_C2C_EVENT
+export const QQ_INTENTS = (1 << 25) | (1 << 26); // GROUP_AND_C2C_EVENT + INTERACTION(按钮回调;仿 Hermes)
 
 export interface QQGatewayOptions {
 	sandbox: boolean;
