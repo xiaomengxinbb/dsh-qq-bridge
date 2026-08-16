@@ -534,6 +534,9 @@ export function apply(ctx: any, _config: unknown): void {
       try {
         const rt = state.runtime;
         if (!rt) return next();
+        // 网关未连接时不能发 QQ 审批消息 → 不接管,交给其他处理器
+        const gwState = rt.gateway.getState().state;
+        if (gwState !== "connected") return next();
         const sessionId = req?.agent?.session?.id;
         const userOpenId =
           typeof sessionId === "string"
