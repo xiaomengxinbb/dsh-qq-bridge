@@ -31,6 +31,14 @@ export interface PiQQBridgeConfig {
 	appId: string;
 	clientSecret: string;
 	sandbox: boolean;
+	gateway: {
+		/** 自动重连最大次数，0 = 无限重连（默认 0，避免静默掉线后 bot 永久失联） */
+		maxReconnectAttempts: number;
+		/** 重连退避基数 ms，默认 1000 */
+		reconnectBaseMs: number;
+		/** 重连退避上限 ms，默认 30000 */
+		reconnectMaxMs: number;
+	};
 	allowUsers: string[];
 	allowGroups: string[];
 	workspaces: { name: string; path: string; description?: string }[];
@@ -115,6 +123,11 @@ export const DEFAULT_CONFIG: PiQQBridgeConfig = {
 	appId: "",
 	clientSecret: "",
 	sandbox: true,
+	gateway: {
+		maxReconnectAttempts: 0,
+		reconnectBaseMs: 1000,
+		reconnectMaxMs: 30000,
+	},
 	allowUsers: [],
 	allowGroups: [],
 	workspaces: [{ name: "default", path: "" }],
