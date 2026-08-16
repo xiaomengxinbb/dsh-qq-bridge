@@ -39,14 +39,16 @@ export interface QQKeyboardButton {
 	id: string;
 	render_data: { label: string; visited_label: string; style: number };
 	action: {
-		// type 1 = 自定义回调(触发 INTERACTION_CREATE,审批按钮必需;仿 Hermes)
-		// type 2 = 文本指令(点击=发送 data 文本,不产生 INTERACTION_CREATE)
+		// type 1 = 回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
+		// type 2 = 链接(打开 URL),不是文本指令!
 		type: 1;
 		permission: { type: 2 };
 		data: string;
 		reply: boolean;
 		enter: boolean;
 		unsupport_tips: string;
+		/** 单用户点击上限(1=点击后失效,防重复;仿 Hermes) */
+		click_limit?: number;
 	};
 }
 
@@ -114,13 +116,14 @@ export class ApprovalBridge {
 			id,
 			render_data: { label, visited_label: visited, style },
 			action: {
-				// type 1 = 自定义回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
+				// type 1 = 回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
 				type: 1,
 				permission: { type: 2 },
 				data: `${APPROVAL_BUTTON_PREFIX}${approvalId}:${choice}`,
 				reply: false,
 				enter: false,
 				unsupport_tips: "请更新 QQ 版本后使用",
+				click_limit: 1,
 			},
 		});
 		return {
