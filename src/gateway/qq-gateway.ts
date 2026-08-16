@@ -479,21 +479,25 @@ export class QQGateway {
 			version?: unknown;
 			oper_author?: { id?: unknown; user_openid?: unknown; member_openid?: unknown };
 			oper_openid?: unknown;
+			user_openid?: unknown;
 			group_openid?: unknown;
 			chat_type?: unknown;
 			msg_id?: unknown;
 		};
 		if (typeof data.id !== "string" || data.id === "") return;
 		const operator =
-			typeof data.oper_openid === "string"
-				? data.oper_openid
-				: typeof data.oper_author?.user_openid === "string"
-					? data.oper_author.user_openid
-					: typeof data.oper_author?.member_openid === "string"
-						? data.oper_author.member_openid
-						: "";
-		// 按钮 data 通常在 data.button_data(QQ 官方 INTERACTION_CREATE 结构)
-		const buttonData = (data.data as { button_data?: unknown } | undefined)?.button_data;
+			typeof data.user_openid === "string" && data.user_openid !== ""
+				? data.user_openid
+				: typeof data.oper_openid === "string"
+					? data.oper_openid
+					: typeof data.oper_author?.user_openid === "string"
+						? data.oper_author.user_openid
+						: typeof data.oper_author?.member_openid === "string"
+							? data.oper_author.member_openid
+							: "";
+		// 按钮 data 在 data.resolved.button_data(QQ 官方 INTERACTION_CREATE 结构;仿 Hermes)
+		const dataObj = data.data as { resolved?: { button_data?: unknown; button_id?: unknown } } | undefined;
+		const buttonData = dataObj?.resolved?.button_data;
 		const interaction: QQInteraction = {
 			id: data.id,
 			buttonData: typeof buttonData === "string" ? buttonData : "",
