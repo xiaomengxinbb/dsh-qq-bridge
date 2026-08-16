@@ -48,6 +48,21 @@ export type QQGatewayStateListener = (
 /** 入站消息回调（M1 接入 router） */
 export type QQInboundListener = (msg: QQInboundMessage) => void;
 
+/** INTERACTION_CREATE 事件(按钮点击,审批用;仿 Hermes InteractionEvent) */
+export interface QQInteraction {
+	/** 交互 id(用于 ACK) */
+	id: string;
+	/** 按钮 data(编码了审批 session_key + choice) */
+	buttonData: string;
+	/** 操作者 openid */
+	operatorOpenId: string;
+	/** 群 openid(群内按钮时) */
+	groupOpenId?: string;
+	/** 原始事件 */
+	raw: unknown;
+}
+export type QQInteractionListener = (interaction: QQInteraction) => void;
+
 /** 图片内容（进 prompt 的 images[]） */
 export interface QQImageContent {
 	type: "image";

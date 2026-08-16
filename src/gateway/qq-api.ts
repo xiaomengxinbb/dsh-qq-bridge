@@ -217,6 +217,49 @@ export class QQApi {
 		}
 	}
 
+	/** ACK 按钮交互(INTERACTION_CREATE 后必须快速 ACK,否则客户端显示错误图标;仿 Hermes _acknowledge_interaction) */
+	async ackInteraction(interactionId: string, code = 0): Promise<void> {
+		const token = await this.auth.getToken();
+		const res = await fetch(`${this.base}/interactions/${encodeURIComponent(interactionId)}`, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `QQBot ${token}`,
+			},
+			body: JSON.stringify({ code }),
+			signal: AbortSignal.timeout(10_000),
+		});
+		if (!res.ok && res.status !== 401) {
+			throw new QQApiError(
+				`interaction ACK failed [${res.status}]: ${(await res.text()).slice(0, 200)}`,
+				res.status,
+				undefined,
+				true,
+			);
+		}
+		if (res.status === 401) {
+			await this.auth.forceRefresh();
+			const token2 = await this.auth.getToken();
+			const res2 = await fetch(`${this.base}/interactions/${encodeURIComponent(interactionId)}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `QQBot ${token2}`,
+				},
+				body: JSON.stringify({ code }),
+				signal: AbortSignal.timeout(10_000),
+			});
+			if (!res2.ok) {
+				throw new QQApiError(
+					`interaction ACK failed [${res2.status}]: ${(await res2.text()).slice(0, 200)}`,
+					res2.status,
+					undefined,
+					true,
+				);
+			}
+		}
+	}
+
 	private async postJson(
 		path: string,
 		payload: Record<string, unknown>,

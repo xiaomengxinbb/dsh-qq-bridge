@@ -38,6 +38,7 @@ import { ConversationRegistry } from "./session/conversation-registry.ts";
 import { QQAgentSession, type DshHost } from "./session/qq-session.ts";
 import { WorkspaceRegistry } from "./session/workspace-registry.ts";
 import { QQRouter, type QQRouterEvent } from "./router.ts";
+import { ApprovalBridge, type ApprovalChoice } from "./approval/approval-bridge.ts";
 import { QQAccessRequestStore, normalizeAccessRole } from "./commands/access-requests.ts";
 import { AttachmentPipeline } from "./media/attachment-pipeline.ts";
 import { CommandStateMachine } from "./commands/command-controller.ts";
@@ -57,6 +58,7 @@ interface BridgeRuntime {
   router: QQRouter;
   workspaceRegistry: WorkspaceRegistry;
   accessRequests: QQAccessRequestStore;
+  approvalBridge: ApprovalBridge;
   viewHolder: { current: TerminalView };
   lock: InstanceLock | null;
   lockCheckTimer: ReturnType<typeof setInterval> | undefined;
@@ -158,6 +160,7 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
     { name: "default", path: cwd },
   );
   const accessRequests = new QQAccessRequestStore();
+  const approvalBridge = new ApprovalBridge();
   const attachmentPipeline = new AttachmentPipeline(cfg, `${process.pid}-${Date.now()}`);
   // viewHolder：无 TUI widget，终端视图退化为 noop（保留结构便于未来 client bundle 接入）
   const viewHolder: { current: TerminalView } = {
@@ -169,6 +172,7 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
     accessRequests,
     attachmentPipeline,
     workspaceRegistry,
+    approvalBridge,
     stateMachine: new CommandStateMachine(cfg.commands),
     statusProvider: () => {
       const { state: gwState, info } = gateway.getState();
@@ -179,6 +183,19 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
   });
   gateway.onInbound((msg) => router.handleInbound(msg));
 
+  // ── 按钮交互(INTERACTION_CREATE):ACK + 路由到审批桥(仿 Hermes _on_interaction) ──
+  gateway.onInteraction((interaction) => {
+    // 先 ACK,避免客户端按钮显示错误
+    void api
+      .ackInteraction(interaction.id)
+      .catch((err) => logger?.warn?.(`[dsh-qq-bridge] interaction ACK 失败: ${String(err)}`));
+    if (approvalBridge.handleButtonData(interaction.buttonData, interaction.operatorOpenId)) {
+      logger?.info?.(
+        `[dsh-qq-bridge] 审批按钮已处理: ${interaction.buttonData.slice(0, 60)} (by ${interaction.operatorOpenId.slice(0, 8)}...)`,
+      );
+    }
+  });
+
   const rt: BridgeRuntime = {
     auth,
     gateway,
@@ -187,6 +204,7 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
     router,
     workspaceRegistry,
     accessRequests,
+    approvalBridge,
     viewHolder,
     lock: null,
     lockCheckTimer: undefined,
@@ -504,6 +522,59 @@ export function apply(ctx: any, _config: unknown): void {
     void startBridge(cfg, ctx).then((message) => {
       logger.info?.(`[dsh-qq-bridge] auto 启动：${message}`);
       dbgStart("auto-start result:", message);
+    });
+  }
+
+  // ── 审批桥：挂接 DSH approval/request waterfall(仿 Hermes tools/approval.py) ──
+  // 当 DSH agent 请求工具审批时:转发到 QQ 消息(带按钮),等用户选择后返回 outcome
+  if (ctx.on !== undefined && typeof ctx.on === "function") {
+    ctx.on("approval/request", (req: any, next: () => string) => {
+      // 有 HTTP API 代理在处理(如 dsh-host-apiproxy)→ 不抢;只有无 UI 通道时接管
+      // 简化:总是尝试接管,若审批桥无对应会话则 next()
+      try {
+        const rt = state.runtime;
+        if (!rt) return next();
+        const sessionId = req?.agent?.session?.id;
+        const userOpenId =
+          typeof sessionId === "string"
+            ? rt.registry.sessionIdToUserOpenId(sessionId)
+            : undefined;
+        if (!userOpenId) return next();
+        const toolName = typeof req?.toolName === "string" ? req.toolName : "unknown";
+        const reason = typeof req?.reason === "string" ? req.reason : "";
+        const approvalId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        return new Promise<string>((resolveOutcome) => {
+          const { keyboard, text } = rt.approvalBridge.createRequest({
+            approvalId,
+            userOpenId,
+            toolName,
+            reason,
+            resolve: (choice) => {
+              const outcome =
+                choice === "deny"
+                  ? "deny"
+                  : "approve";
+              resolveOutcome(outcome);
+            },
+          });
+          // 发 QQ 审批消息(带三按钮键盘)
+          void rt.api
+            .sendText(
+              { type: "private", userOpenId, msgId: "" },
+              text,
+              Date.now() % 65535,
+              keyboard,
+            )
+            .catch((err) => {
+              logger?.warn?.(`[dsh-qq-bridge] 审批消息发送失败: ${String(err)}`);
+              resolveOutcome("unavailable");
+            });
+          // 超时由 ApprovalBridge 内部处理(2 分钟 → deny)
+        });
+      } catch (err) {
+        logger?.warn?.(`[dsh-qq-bridge] approval/request 处理异常: ${String(err)}`);
+        return next();
+      }
     });
   }
 

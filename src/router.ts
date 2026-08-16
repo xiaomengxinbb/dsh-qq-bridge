@@ -73,6 +73,14 @@ export interface QQRouterOptions {
 	debugLog?: (message: string) => void;
 	/** /status 的网关状态文本提供者（index.ts 接线） */
 	statusProvider?: () => string;
+	/** 审批桥(按钮/命令审批;不传则 /approve 命令不可用) */
+	approvalBridge?: ApprovalBridgeLike;
+}
+
+/** ApprovalBridge 的最小接口(避免循环依赖) */
+export interface ApprovalBridgeLike {
+	handleTextCommand(command: string, operatorOpenId: string): { handled: boolean; approvalId?: string };
+	pendingCount: number;
 }
 
 interface LastEntry {
@@ -107,6 +115,7 @@ export class QQRouter {
 	private readonly config: PiQQBridgeConfig;
 	private readonly registry: ConversationRegistryLike;
 	private readonly api: QQApi;
+	private readonly approvalBridge?: ApprovalBridgeLike;
 
 	constructor(
 		config: PiQQBridgeConfig,
@@ -128,6 +137,7 @@ export class QQRouter {
 		this.debugLog = options.debugLog;
 		this.attachmentPipeline = options.attachmentPipeline;
 		this.workspaceRegistry = options.workspaceRegistry;
+		this.approvalBridge = options.approvalBridge;
 	}
 
 	// ── 入站入口 ───────────────────────────────────────────────────
@@ -239,6 +249,25 @@ export class QQRouter {
 		msg: QQInboundMessage,
 		text: string,
 	): Promise<void> {
+		// 审批命令优先: /approve /always /deny → 直接交给审批桥(仿 Hermes 网关拦截)
+		if (this.approvalBridge) {
+			const cmdName = text.trim().slice(1).split(/[\s]+/)[0]?.toLowerCase();
+			if (
+				cmdName === "approve" ||
+				cmdName === "always" ||
+				cmdName === "deny" ||
+				cmdName === "yes" ||
+				cmdName === "no" ||
+				cmdName === "cancel"
+			) {
+				const result = this.approvalBridge.handleTextCommand(cmdName, msg.userOpenId);
+				if (result.handled) {
+					await this.replyToQQ(msg, `✅ 审批已处理（${cmdName}）`);
+					return;
+				}
+				// 无挂起审批:继续走普通命令解析(如 /approve 无参数时给帮助)
+			}
+		}
 		let command: ParsedQQCommand | undefined;
 		try {
 			command = parseQQCommand(text);
