@@ -138,7 +138,10 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
   const gateway = new QQGateway(auth, { sandbox: cfg.sandbox, debugLog: debugLogFor(cfg), ...(apiBase ? { apiBase } : {}) });
   const api = new QQApi(auth, { sandbox: cfg.sandbox, ...(apiBase ? { apiBase } : {}) });
   const agentDir = expandHome("~/.dsh/qq-bridge");
-  const cwd = process.cwd();
+  // 默认工作区:优先用配置里的非 home 工作区(避免 C:/Users/ampct 包含 Temp 导致
+  // windows-acl 沙箱报 "temp root must be outside the workspace")
+  const wsConfig = cfg.workspaces.find((w) => w.name !== "default" && w.path && !w.path.toLowerCase().startsWith("c:/users/"));
+  const cwd = wsConfig?.path || process.cwd();
 
   const host: DshHost = {
     ctx: ctx as never,
