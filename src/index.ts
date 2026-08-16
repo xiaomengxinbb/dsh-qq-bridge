@@ -561,10 +561,11 @@ export function apply(ctx: any, _config: unknown): void {
             },
           });
           // 发 QQ 审批消息(带三按钮键盘)
-          // QQ 要求 keyboard 只能跟随被动回复(msg_id 必填)→ 用最近入站 msg_id(仿 Hermes _last_msg_id)
+          // QQ 要求 keyboard 只跟随 msg_type=2(markdown)渲染 + 被动回复(msg_id 必填)
+          // → 用 sendMarkdown + 最近入站 msg_id(仿 Hermes _last_msg_id + markdown_support)
           const msgId = rt.router.lastMsgIdFor(userOpenId) ?? "";
           void rt.api
-            .sendText(
+            .sendMarkdown(
               { type: "private", userOpenId, msgId },
               text,
               Date.now() % 65535,
