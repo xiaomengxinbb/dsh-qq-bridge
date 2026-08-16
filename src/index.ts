@@ -142,7 +142,8 @@ function createBridge(cfg: PiQQBridgeConfig, ctx: any): BridgeRuntime {
   };
   if (apiBase) gwOptions.apiBase = apiBase;
   if (cfg.gateway) {
-    if (cfg.gateway.maxReconnectAttempts > 0) gwOptions.maxReconnectAttempts = cfg.gateway.maxReconnectAttempts;
+    // 0 = 无限重连;显式传入(含 0),让 QQGateway 的默认 5 被覆盖
+    if (Number.isFinite(cfg.gateway.maxReconnectAttempts)) gwOptions.maxReconnectAttempts = cfg.gateway.maxReconnectAttempts;
     if (cfg.gateway.reconnectBaseMs > 0) gwOptions.reconnectBaseMs = cfg.gateway.reconnectBaseMs;
     if (cfg.gateway.reconnectMaxMs > 0) gwOptions.reconnectMaxMs = cfg.gateway.reconnectMaxMs;
   }

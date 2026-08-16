@@ -158,6 +158,27 @@ export class QQGateway {
 		const gatewayRes = await fetch(`${this.apiBase}/gateway`, {
 			headers: { Authorization: `QQBot ${token}` },
 		});
+		if (gatewayRes.status === 401) {
+			// token 失效（如长期运行后预刷新被跳过）：强制刷新后重试一次
+			this.debugLog?.(`gateway 端点 401，强制刷新 token 后重试`);
+			await this.auth.forceRefresh();
+			const token2 = await this.auth.getToken();
+			const retryRes = await fetch(`${this.apiBase}/gateway`, {
+				headers: { Authorization: `QQBot ${token2}` },
+			});
+			if (!retryRes.ok) {
+				throw new Error(
+					`gateway 端点 HTTP ${retryRes.status} ${retryRes.statusText}`,
+				);
+			}
+			const retryBody = (await retryRes.json()) as { url?: string };
+			if (typeof retryBody.url !== "string" || retryBody.url === "") {
+				throw new Error("gateway 响应缺少 url");
+			}
+			this.setState("connecting", "获取网关地址");
+			await this.openSocket(retryBody.url, token2);
+			return;
+		}
 		if (!gatewayRes.ok) {
 			throw new Error(
 				`gateway 端点 HTTP ${gatewayRes.status} ${gatewayRes.statusText}`,
