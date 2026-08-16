@@ -553,10 +553,11 @@ export function apply(ctx: any, _config: unknown): void {
             toolName,
             reason,
             resolve: (choice) => {
+              // DSH OUTCOMES 词汇: allowed-once / rejected / cancelled / unavailable
               const outcome =
                 choice === "deny"
-                  ? "deny"
-                  : "approve";
+                  ? "rejected"
+                  : "allowed-once";
               resolveOutcome(outcome);
             },
           });
