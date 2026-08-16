@@ -145,7 +145,7 @@ export class QQRouter {
 	// ── 入站入口 ───────────────────────────────────────────────────
 
 	handleInbound(msg: QQInboundMessage): void {
-		this.debugLog?.(`[router] 入站 id=${msg.id.slice(0, 24)} user=${msg.userOpenId} group=${msg.groupOpenId ?? "-"} text=${msg.text.slice(0, 30)}`);
+		this.debugLog?.(`[router] 入站 id=${msg.id} user=${msg.userOpenId} group=${msg.groupOpenId ?? "-"} text=${msg.text.slice(0, 30)}`);
 		if (!this.dedupe.admit(msg.id)) {
 			this.debugLog?.("[router] 去重丢弃");
 			return; // 平台重复推送
