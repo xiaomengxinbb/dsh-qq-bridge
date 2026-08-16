@@ -190,6 +190,30 @@ export class QQRouter {
 		this.queue.length = 0;
 	}
 
+	/**
+	 * 启动周期"对方正在输入"指示器(仿 Hermes send_typing 的 50s 去抖)。
+	 * 返回定时器,agent 处理结束(或取消)时调用方 clearInterval。
+	 */
+	private startTypingIndicator(msg: QQInboundMessage): ReturnType<typeof setInterval> | undefined {
+		if (msg.type !== "private") return undefined; // C2C 专用
+		const msgId = msg.id;
+		if (!msgId) return undefined;
+		const target = this.targetOf(msg);
+		let lastSent = 0;
+		const fire = (): void => {
+			const now = Date.now();
+			if (now - lastSent < 50_000) return; // 去抖 50s
+			lastSent = now;
+			const seq = Math.floor(now / 1000) % 65535;
+			void this.api.sendTyping(target.userOpenId ?? "", msgId, seq).catch(() => {
+				// typing 失败静默(不影响主流程)
+			});
+		};
+		fire(); // 立即发一次
+		return setInterval(fire, 45_000); // 45s 周期,保证 60s 指示不中断
+	}
+
+
 	// ── 白名单与访问申请 ──────────────────────────────────────────
 
 	private isAuthorized(msg: QQInboundMessage): boolean {
@@ -912,7 +936,14 @@ export class QQRouter {
 					budget.isExhausted ? undefined : budget.nextSeq(),
 			});
 			session.bindOutboundDelivery?.(delivery);
-			const result = await session.run(prompt, { images });
+			// 处理期间周期发送"对方正在输入"(msg_type:6;50s 去抖,仿 Hermes send_typing)
+			const typingTimer = this.startTypingIndicator(msg);
+			let result: import("./session/qq-session.ts").QQRunResult;
+			try {
+				result = await session.run(prompt, { images });
+			} finally {
+				if (typingTimer) clearInterval(typingTimer);
+			}
 			delivery.close();
 			let text = result.text;
 			if (this.config.showProcess && result.tools.length > 0) {
