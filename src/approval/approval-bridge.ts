@@ -42,14 +42,13 @@ export interface QQKeyboardButton {
 		// type 1 = 回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
 		// type 2 = 链接(打开 URL),不是文本指令!
 		type: 1;
-		permission: { type: 2 };
 		data: string;
-		reply: boolean;
-		enter: boolean;
-		unsupport_tips: string;
+		permission: { type: 2 };
 		/** 单用户点击上限(1=点击后失效,防重复;仿 Hermes) */
-		click_limit?: number;
+		click_limit: number;
 	};
+	/** 同 group_id 的按钮互斥(点击一个置灰其余;仿 Hermes) */
+	group_id: string;
 }
 
 export interface QQKeyboard {
@@ -118,13 +117,11 @@ export class ApprovalBridge {
 			action: {
 				// type 1 = 回调 → 触发 INTERACTION_CREATE(审批必需;仿 Hermes)
 				type: 1,
-				permission: { type: 2 },
 				data: `${APPROVAL_BUTTON_PREFIX}${approvalId}:${choice}`,
-				reply: false,
-				enter: false,
-				unsupport_tips: "请更新 QQ 版本后使用",
+				permission: { type: 2 },
 				click_limit: 1,
 			},
+			group_id: "approval",
 		});
 		return {
 			content: {
