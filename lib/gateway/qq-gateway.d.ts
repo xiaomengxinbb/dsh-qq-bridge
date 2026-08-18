@@ -9,7 +9,7 @@
  * - 重连：op6 Resume {token, session_id, seq} 补发遗漏事件；非 4009 错误走 Identify
  * - 依赖 Node 内置 WebSocket（Node >=22.19），零运行时依赖
  */
-import type { QQGatewayState, QQGatewayStateListener, QQInboundListener } from "../core/types.ts";
+import type { QQGatewayState, QQGatewayStateListener, QQInboundListener, QQInteraction } from "../core/types.ts";
 import type { QQAuth } from "./qq-auth.ts";
 export declare const QQ_INTENTS: number;
 export interface QQGatewayOptions {
@@ -62,9 +62,15 @@ export declare class QQGateway {
     private setState;
     private closeSocket;
     private connect;
+    private lastConnectAt;
+    private quickDisconnectCount;
     private openSocket;
     private handleFrame;
     private dispatchEvent;
+    /** 交互监听器:收到按钮点击时回调(仿 Hermes set_interaction_callback) */
+    private interactionListeners;
+    onInteraction(listener: (interaction: QQInteraction) => void): () => void;
+    private dispatchInteraction;
     private startHeartbeat;
     private clearHeartbeat;
     private scheduleReconnect;

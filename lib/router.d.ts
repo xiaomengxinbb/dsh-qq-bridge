@@ -69,6 +69,16 @@ export interface QQRouterOptions {
     debugLog?: (message: string) => void;
     /** /status 的网关状态文本提供者（index.ts 接线） */
     statusProvider?: () => string;
+    /** 审批桥(按钮/命令审批;不传则 /approve 命令不可用) */
+    approvalBridge?: ApprovalBridgeLike;
+}
+/** ApprovalBridge 的最小接口(避免循环依赖) */
+export interface ApprovalBridgeLike {
+    handleTextCommand(command: string, operatorOpenId: string): {
+        handled: boolean;
+        approvalId?: string;
+    };
+    pendingCount: number;
 }
 export declare class QQRouter {
     private readonly queue;
@@ -92,6 +102,9 @@ export declare class QQRouter {
     private readonly config;
     private readonly registry;
     private readonly api;
+    private readonly approvalBridge?;
+    /** 用户 openid → 最近入站 msg_id(审批按钮被动回复用) */
+    private readonly lastMsgIdByUser;
     constructor(config: PiQQBridgeConfig, registry: ConversationRegistryLike, api: QQApi, options?: QQRouterOptions);
     handleInbound(msg: QQInboundMessage): void;
     get queueSize(): number;
@@ -136,6 +149,8 @@ export declare class QQRouter {
     private sendFormatted;
     private targetOf;
     private recordInbound;
+    /** 最近入站 msg_id(按用户;审批消息做被动回复用,QQ 要求带 msg_id 才有 keyboard) */
+    lastMsgIdFor(userOpenId: string): string | undefined;
     private recordOutbound;
     private emit;
 }

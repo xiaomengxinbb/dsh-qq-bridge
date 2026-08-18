@@ -22,6 +22,8 @@ export interface ConversationEntry {
 export declare class ConversationRegistry {
     private readonly entries;
     private disposed;
+    /** 由 DSH session id 反查 QQ 用户 openid(审批转发用) */
+    sessionIdToUserOpenId(sessionId: string): string | undefined;
     private readonly config;
     private readonly agentDir;
     private readonly sessionFactory;

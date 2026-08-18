@@ -1,7 +1,0 @@
-merge: QQ 审批桥（PR #3，Mchsd）— INTERACTION_CREATE 按钮审批 + /approve /deny 文本命令
-
-- src/approval/approval-bridge.ts（新增）：审批桥核心（按钮编码/键盘构建/超时/文本命令解析）
-- gateway：INTERACTION 意图(1<<26) + INTERACTION_CREATE 解析 + operator openid 优先
-- api：ackInteraction（PUT /interactions/{id}，401 自动刷新重试）
-- router/index/types/conversation-registry：审批挂接与集成
-- 冲突解决：与 #4/#5/#6 合并代码协调；测试适配（intents 断言、sendTyping 桩、mock 过滤 msg_type:6）
