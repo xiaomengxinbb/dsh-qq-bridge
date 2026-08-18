@@ -95,6 +95,52 @@ chmod 600 ~/.dsh/qq-bridge/config.json
 字段与 pi-qq-bridge 一致（schemaVersion 4）：`allowUsers` / `allowGroups` / `workspaces` /
 `commands` / `sessions` / `replyFormat` / `progress` / `media` / `outboundMedia` 等。
 
+### Windows 原生部署适配
+
+在 Windows 原生（非 WSL）环境部署时注意以下三点（对应 PR #6/#8）：
+
+**1. 工作区避开 `C:/Users/...`（含 Temp）**
+
+Windows 的 `windows-acl` 沙箱要求临时目录（temp root）在会话工作区之外；若默认工作区落在
+`C:/Users/<user>`（其子目录通常包含 Temp），会触发沙箱冲突
+（`temp root must be outside the workspace`）。
+
+解决：在配置里显式指定一个**非 home 的工作区**，插件会自动优先选用它作为 QQ 会话的默认工作区：
+
+```jsonc
+{
+  "workspaces": [
+    { "name": "default", "path": "" },
+    { "name": "work", "path": "D:/dev/qq-workspace" }   // 非 C:/Users 的目录
+  ]
+}
+```
+
+（插件逻辑：默认工作区优先取配置中第一个 path 非空且不以 `c:/users/` 开头的 workspace。）
+
+**2. 出站文件 `allowedRoots` 白名单**
+
+`qq_send_local_file` 工具只允许发送 `allowedRoots` 列出的目录（OS 临时目录恒可用）。
+Windows 路径请写绝对路径，例如：
+
+```jsonc
+{
+  "outboundMedia": {
+    "enabled": true,
+    "allowedRoots": ["D:/dev/qq-workspace", "C:/data/shared"]
+  }
+}
+```
+
+注意：路径校验走 realpath，符号链接/硬链接会被拒绝；不允许用 `C:/Users/...` 作为出站根目录
+（与沙箱策略冲突）。
+
+**3. sandbox 策略说明**
+
+- 会话沙箱工作目录 = 会话工作区（见第 1 点），写入仅限工作区内；越界写入需审批（审批桥见 PR #3）
+- `windows-acl` 沙箱在 Windows 原生环境启用；WSL/Linux 下为普通目录权限模型
+- 若使用正式环境（`sandbox: false`），以上沙箱限制由平台侧接管，出站文件仍需 `allowedRoots` 白名单
+
 ---
 
 ## 本地命令（Web 聊天里输入，注册于 ctx.commands）
