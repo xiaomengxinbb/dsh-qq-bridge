@@ -35,7 +35,7 @@ test("完整连接：token → gateway → Identify → READY → connected", as
 			intents?: number;
 			shard?: number[];
 		};
-		assert.equal(id?.intents, 1 << 25);
+		assert.equal(id?.intents, (1 << 25) | (1 << 26)); // GROUP_AND_C2C_EVENT + INTERACTION(PR #3 审批桥)
 		assert.deepEqual(id?.shard, [0, 1]);
 		assert.match(id?.token ?? "", /^QQBot MOCK_TOKEN$/);
 

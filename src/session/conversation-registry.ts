@@ -31,6 +31,17 @@ export class ConversationRegistry {
 	private readonly entries = new Map<string, ConversationEntry>();
 	private disposed = false;
 
+	/** 由 DSH session id 反查 QQ 用户 openid(审批转发用) */
+	sessionIdToUserOpenId(sessionId: string): string | undefined {
+		for (const [key, entry] of this.entries) {
+			if (entry.session.sessionId() !== sessionId) continue;
+			// key = private:{user_openid} / group:{group_openid}
+			if (key.startsWith("private:")) return key.slice("private:".length);
+			if (key.startsWith("group:")) return key.slice("group:".length);
+		}
+		return undefined;
+	}
+
 	private readonly config: PiQQBridgeConfig;
 	private readonly agentDir: string;
 	private readonly sessionFactory: QQSessionFactory;

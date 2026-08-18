@@ -14,10 +14,11 @@ import type {
 	QQGatewayStateListener,
 	QQInboundListener,
 	QQInboundMessage,
+	QQInteraction,
 } from "../core/types.ts";
 import type { QQAuth } from "./qq-auth.ts";
 
-export const QQ_INTENTS = 1 << 25; // GROUP_AND_C2C_EVENT
+export const QQ_INTENTS = (1 << 25) | (1 << 26); // GROUP_AND_C2C_EVENT + INTERACTION(按钮回调;仿 Hermes)
 
 export interface QQGatewayOptions {
 	sandbox: boolean;
@@ -39,8 +40,32 @@ const OP_IDENTIFY = 2;
 const OP_RESUME = 6;
 const OP_HEARTBEAT_ACK = 11;
 const OP_DISPATCH = 0;
+const OP_RECONNECT = 7;
+const OP_INVALID_SESSION = 9;
 
 const ERR_RESUMEABLE = 4009;
+
+// 关闭码分类(Hermes adapter 对齐)
+// 致命码:不可恢复,停止重连
+const FATAL_CLOSE_CODES = new Set([
+	4001, // Invalid opcode
+	4002, // Invalid payload
+	4010, // Invalid shard
+	4011, // Sharding required
+	4012, // Invalid API version
+	4013, // Invalid intent
+	4014, // Intent not authorized
+	4914, // Offline/sandbox-only
+	4915, // Banned
+]);
+// 会话失效码:需清 session 重新 Identify
+const SESSION_INVALID_CODES = new Set([
+	4006, 4007, 4900, 4901, 4902, 4903, 4904,
+	4905, 4906, 4907, 4908, 4909, 4910, 4911, 4912, 4913,
+]);
+// 快速断连检测:5s 内断开计一次,3 次后停止(疑似凭据/权限问题)
+const QUICK_DISCONNECT_THRESHOLD_MS = 5000;
+const MAX_QUICK_DISCONNECT_COUNT = 3;
 
 export class QQGateway {
 	private ws: WebSocket | undefined;
@@ -192,6 +217,9 @@ export class QQGateway {
 		await this.openSocket(gatewayBody.url, token);
 	}
 
+	private lastConnectAt = 0;
+	private quickDisconnectCount = 0;
+
 	private openSocket(url: string, token: string): Promise<void> {
 		return new Promise((resolve, reject) => {
 			let settled = false;
@@ -243,13 +271,57 @@ export class QQGateway {
 				fail(new Error("WebSocket 连接错误"));
 			};
 
-			ws.onclose = () => {
+			ws.onclose = (ev) => {
 				if (this.ws !== ws) return; // 已被 closeSocket 替换
 				this.ws = undefined;
 				this.clearHeartbeat();
+				// 记录连接时长用于快速断连检测
+				if (this.lastConnectAt > 0) {
+					const duration = Date.now() - this.lastConnectAt;
+					if (duration < QUICK_DISCONNECT_THRESHOLD_MS) {
+						this.quickDisconnectCount += 1;
+						this.debugLog?.(`[gw] 快速断连(${duration}ms)，第 ${this.quickDisconnectCount} 次`);
+						if (this.quickDisconnectCount >= MAX_QUICK_DISCONNECT_COUNT) {
+							this.setState(
+								"error",
+								"多次快速断连：请检查 AppID/Secret 与机器人权限（QQ 开放平台）",
+							);
+							return;
+						}
+					} else {
+						this.quickDisconnectCount = 0;
+					}
+				}
+				// 关闭码分类（Hermes adapter 对齐）
+				const code = (ev as unknown as { code?: number })?.code;
+				if (code !== undefined) {
+					if (FATAL_CLOSE_CODES.has(code)) {
+						this.setState("error", `致命关闭码 ${code}（机器人下线/封禁/配置错误），停止重连`);
+						return;
+					}
+					if (code === 4004) {
+						// token 无效 → 清缓存,下次 connect 会刷新
+						this.debugLog?.(`[gw] 关闭码 4004（token 无效），将刷新后重连`);
+						void this.auth.forceRefresh().catch(() => undefined);
+					} else if (code === 4008) {
+						this.debugLog?.(`[gw] 关闭码 4008（限流），退避 60s`);
+						this.setState("connecting", "限流(4008)，60s 后重连");
+						setTimeout(() => {
+							if (!this.stopped) this.scheduleReconnect("rate limited (4008)");
+						}, 60_000).unref?.();
+						return;
+					} else if (SESSION_INVALID_CODES.has(code)) {
+						this.debugLog?.(`[gw] 关闭码 ${code}（会话失效），清 session 重新 Identify`);
+						this.sessionId = undefined;
+						this.lastSeq = 0;
+					} else if (code !== 4009) {
+						this.debugLog?.(`[gw] 关闭码 ${code}`);
+					}
+					// 4009:可恢复,保留 session 走 Resume
+				}
 				if (settled) {
 					// 连接建立后断开 → 自动重连
-					this.scheduleReconnect("连接已断开");
+					this.scheduleReconnect(`连接已断开${code !== undefined ? `(code=${code})` : ""}`);
 				} else if (!this.stopped) {
 					fail(new Error("连接在握手完成前关闭"));
 				}
@@ -302,11 +374,13 @@ export class QQGateway {
 					const d = frame.d as { session_id?: string } | undefined;
 					if (typeof d?.session_id === "string") this.sessionId = d.session_id;
 					this.reconnectAttempts = 0;
+					this.lastConnectAt = Date.now();
 					this.debugLog?.(`[gw] READY session_id=${this.sessionId ?? "?"}`);
 					this.setState("connected", "已连接");
 					onReady();
 				} else if (frame.t === "RESUMED") {
 					this.reconnectAttempts = 0;
+					this.lastConnectAt = Date.now();
 					this.debugLog?.("[gw] RESUMED");
 					this.setState("connected", "已恢复（Resume）");
 					onReady();
@@ -345,6 +419,10 @@ export class QQGateway {
 	}
 
 	private dispatchEvent(t: string, d: unknown): void {
+		if (t === "INTERACTION_CREATE") {
+			this.dispatchInteraction(d);
+			return;
+		}
 		if (t !== "C2C_MESSAGE_CREATE" && t !== "GROUP_AT_MESSAGE_CREATE") return;
 		const data = d as {
 			id?: unknown;
@@ -400,6 +478,62 @@ export class QQGateway {
 			raw: d,
 		};
 		for (const listener of this.inboundListeners) listener(msg);
+	}
+
+	// ── INTERACTION_CREATE(按钮/交互事件,审批用) ──────────────────────
+
+	/** 交互监听器:收到按钮点击时回调(仿 Hermes set_interaction_callback) */
+	private interactionListeners = new Set<(interaction: QQInteraction) => void>();
+
+	onInteraction(listener: (interaction: QQInteraction) => void): () => void {
+		this.interactionListeners.add(listener);
+		return () => this.interactionListeners.delete(listener);
+	}
+
+	private dispatchInteraction(d: unknown): void {
+		const data = d as {
+			id?: unknown;
+			type?: unknown;
+			data?: { resolved?: unknown; feature_intent?: unknown; [k: string]: unknown };
+			scene?: unknown;
+			timestamp?: unknown;
+			version?: unknown;
+			oper_author?: { id?: unknown; user_openid?: unknown; member_openid?: unknown };
+			oper_openid?: unknown;
+			user_openid?: unknown;
+			group_openid?: unknown;
+			chat_type?: unknown;
+			msg_id?: unknown;
+		};
+		if (typeof data.id !== "string" || data.id === "") return;
+		const operator =
+			typeof data.user_openid === "string" && data.user_openid !== ""
+				? data.user_openid
+				: typeof data.oper_openid === "string"
+					? data.oper_openid
+					: typeof data.oper_author?.user_openid === "string"
+						? data.oper_author.user_openid
+						: typeof data.oper_author?.member_openid === "string"
+							? data.oper_author.member_openid
+							: "";
+		// 按钮 data 在 data.resolved.button_data(QQ 官方 INTERACTION_CREATE 结构;仿 Hermes)
+		const dataObj = data.data as { resolved?: { button_data?: unknown; button_id?: unknown } } | undefined;
+		const buttonData = dataObj?.resolved?.button_data;
+		const interaction: QQInteraction = {
+			id: data.id,
+			buttonData: typeof buttonData === "string" ? buttonData : "",
+			operatorOpenId: operator,
+			groupOpenId: typeof data.group_openid === "string" ? data.group_openid : undefined,
+			raw: d,
+		};
+		this.debugLog?.(`[gw] INTERACTION_CREATE id=${interaction.id} button=${interaction.buttonData.slice(0, 60)}`);
+		for (const listener of this.interactionListeners) {
+			try {
+				listener(interaction);
+			} catch (err) {
+				this.debugLog?.(`[gw] interaction listener error: ${(err as Error).message}`);
+			}
+		}
 	}
 
 	private startHeartbeat(intervalMs: number): void {
