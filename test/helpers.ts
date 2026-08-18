@@ -61,6 +61,9 @@ export function makeApi(sent: SentMessage[], failWith?: Error): QQApi {
 		): Promise<void> {
 			push(target, content, msgSeq, keyboard);
 		},
+		async sendTyping(): Promise<void> {
+			// 合并自 PR #5（对方正在输入）：测试桩静默即可
+		},
 	} as unknown as QQApi;
 }
 

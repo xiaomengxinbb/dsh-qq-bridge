@@ -205,6 +205,8 @@ export async function startMockQQServer(port = 0): Promise<MockQQServer> {
 				} catch {
 					// 保留空 body
 				}
+				// 打字指示器（msg_type:6）不是真实回复，不计入 messages
+				if (body.msg_type === 6) return;
 				messages.push({ path: url, body });
 				res.setHeader("Content-Type", "application/json");
 				res.end(JSON.stringify({ id: `sent_${messages.length}` }));
